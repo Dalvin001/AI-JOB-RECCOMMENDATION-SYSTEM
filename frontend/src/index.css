@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* DEFAULT THEME (BLUE) */
+:root {
+  --bg: #f9fafb;
+  --card: #ffffff;
+  --text: #0f172a;
+  --accent: #2563eb;
+}
+
+/* DARK MODE */
+.dark {
+  --bg: #020617;
+  --card: #020617;
+  --text: #e5e7eb;
+  --accent: #38bdf8;
+}
+
+/* GREEN THEME */
+.theme-green {
+  --accent: #16a34a;
+}
+
+/* PURPLE THEME */
+.theme-purple {
+  --accent: #7c3aed;
+}
