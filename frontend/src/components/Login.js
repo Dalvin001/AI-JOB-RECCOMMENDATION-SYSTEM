@@ -1,47 +1,42 @@
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+
 function Login() {
+
+  const navigate = useNavigate();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const handleLogin = async () => {
+
+    const response = await axios.post(
+      "http://127.0.0.1:8000/auth/login",
+      { email, password }
+    );
+
+    localStorage.setItem("token", response.data.access_token);
+
+    navigate("/dashboard");
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <div
-        className="w-full max-w-md bg-[var(--card)]
-                   border border-gray-200 dark:border-slate-700
-                   rounded-2xl shadow-lg p-8"
-      >
-        <h2 className="text-3xl font-bold text-center mb-6">
-          Sign In
-        </h2>
+    <div>
+      <h2>Login</h2>
 
-        <form className="space-y-4">
-          <input
-            type="email"
-            placeholder="Email address"
-            className="w-full px-4 py-3 rounded-lg
-                       bg-gray-100 dark:bg-slate-800
-                       outline-none"
-          />
+      <input
+        placeholder="Email"
+        onChange={(e) => setEmail(e.target.value)}
+      />
 
-          <input
-            type="password"
-            placeholder="Password"
-            className="w-full px-4 py-3 rounded-lg
-                       bg-gray-100 dark:bg-slate-800
-                       outline-none"
-          />
+      <input
+        type="password"
+        placeholder="Password"
+        onChange={(e) => setPassword(e.target.value)}
+      />
 
-          <button
-            className="w-full py-3 rounded-lg text-white font-semibold
-                       bg-[var(--accent)] hover:opacity-90"
-          >
-            Login
-          </button>
-        </form>
-
-        <p className="text-sm text-center mt-6 opacity-80">
-          Don’t have an account?{" "}
-          <span className="text-[var(--accent)] font-medium cursor-pointer">
-            Register
-          </span>
-        </p>
-      </div>
+      <button onClick={handleLogin}>Login</button>
     </div>
   );
 }
