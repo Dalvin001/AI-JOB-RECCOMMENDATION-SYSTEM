@@ -56,9 +56,8 @@ function Dashboard() {
       try {
         setLoading(true);
 
-        // ✅ PROFILE
         const profileRes = await axios.get(
-          "http://127.0.0.1:8000/profile/me",
+          "http://127.0.0.1:8000/profile/",
           {
             headers: { Authorization: `Bearer ${token}` }
           }
@@ -71,7 +70,6 @@ function Dashboard() {
 
         setProfile(profileRes.data);
 
-        // ✅ FIX SKILLS (NO MORE "p,y,t,h,o,n")
         let userSkills = profileRes.data.skills;
 
         if (!userSkills || userSkills.trim() === "") {
@@ -84,7 +82,6 @@ function Dashboard() {
             .join(",");
         }
 
-        // ✅ API CALLS (ALL SAFE)
         const [jobsRes, skillsRes, marketRes] =
           await Promise.allSettled([
             axios.get(
@@ -93,38 +90,31 @@ function Dashboard() {
                 headers: { Authorization: `Bearer ${token}` }
               }
             ),
-
             axios.get(
               "http://127.0.0.1:8000/skills/recommend",
               {
                 headers: { Authorization: `Bearer ${token}` }
               }
             ),
-
-            axios.get(
-              "http://127.0.0.1:8000/market/insights"
-            )
+            axios.get("http://127.0.0.1:8000/market/insights")
           ]);
 
-        // ✅ JOBS
         if (jobsRes.status === "fulfilled") {
           setJobs(Array.isArray(jobsRes.value.data)
             ? jobsRes.value.data
             : []);
         }
 
-        // ✅ SKILLS
         if (skillsRes.status === "fulfilled") {
           setSkills(skillsRes.value.data?.recommended_skills || []);
         }
 
-        // ✅ MARKET
         if (marketRes.status === "fulfilled") {
           setMarket(marketRes.value.data || null);
         }
 
       } catch (err) {
-        console.error("Dashboard error:", err);
+        console.error(err);
 
         if (err.response?.status === 401) {
           localStorage.removeItem("token");
@@ -137,11 +127,7 @@ function Dashboard() {
           return;
         }
 
-        setError(
-          err.response?.data?.detail ||
-          "Failed to load dashboard data."
-        );
-
+        setError(err.response?.data?.detail || "Failed to load data");
       } finally {
         setLoading(false);
       }
@@ -150,19 +136,17 @@ function Dashboard() {
     fetchData();
   }, [token]);
 
-  // 🔄 LOADING
   if (loading) {
     return (
       <Box sx={loadingStyle}>
-        <CircularProgress color="inherit" />
-        <Typography mt={2}>
-          Preparing your AI dashboard...
+        <CircularProgress sx={{ color: "#2ecc71" }} />
+        <Typography mt={2} fontWeight="bold">
+          Loading your dashboard...
         </Typography>
       </Box>
     );
   }
 
-  // ❌ ERROR
   if (error) {
     return (
       <Container sx={{ mt: 6 }}>
@@ -171,14 +155,14 @@ function Dashboard() {
     );
   }
 
-  // 📊 CHART
   const chartData = market
     ? {
         labels: market.top_skills?.map(s => s[0]) || [],
         datasets: [
           {
             label: "Market Demand",
-            data: market.top_skills?.map(s => s[1]) || []
+            data: market.top_skills?.map(s => s[1]) || [],
+            backgroundColor: "#f1c40f"
           }
         ]
       }
@@ -189,11 +173,11 @@ function Dashboard() {
       <Container>
 
         {/* HEADER */}
-        <Typography variant="h5" color="#fff" mb={1}>
-          Welcome back, {profile?.name || "User"} 👋
+        <Typography variant="h4" fontWeight="bold" mb={1} color="#145a32">
+          Welcome, {profile?.name || "User"}
         </Typography>
 
-        <Typography variant="h3" fontWeight="bold" color="#fff" mb={4}>
+        <Typography variant="h5" mb={4} color="#b7950b">
           AI Career Dashboard
         </Typography>
 
@@ -201,10 +185,10 @@ function Dashboard() {
 
           {/* PROFILE */}
           <Grid item xs={12} md={4}>
-            <Card sx={glassCard}>
+            <Card sx={cardStyle}>
               <CardContent>
 
-                <Avatar sx={{ width: 80, height: 80, mb: 2 }}>
+                <Avatar sx={avatarStyle}>
                   {profile?.email?.charAt(0)?.toUpperCase() || "U"}
                 </Avatar>
 
@@ -212,11 +196,11 @@ function Dashboard() {
                   {profile?.name || profile?.email}
                 </Typography>
 
-                <Typography mt={1}>
+                <Typography color="#555">
                   📍 {profile?.location || "Unknown"}
                 </Typography>
 
-                <Typography>
+                <Typography color="#555">
                   💼 {profile?.industry || "Not set"}
                 </Typography>
 
@@ -230,8 +214,7 @@ function Dashboard() {
                       <Chip
                         key={i}
                         label={skill}
-                        size="small"
-                        sx={{ mr: 1, mt: 1 }}
+                        sx={chipStyle}
                       />
                     ))}
                 </Box>
@@ -242,18 +225,22 @@ function Dashboard() {
 
           {/* JOBS */}
           <Grid item xs={12} md={4}>
-            <Card sx={glassCard}>
+            <Card sx={cardStyle}>
               <CardContent>
 
-                <Typography variant="h6">
+                <Typography variant="h6" fontWeight="bold" mb={2}>
                   💼 Recommended Jobs
                 </Typography>
 
                 <List>
                   {jobs.length > 0 ? jobs.slice(0, 5).map((job, i) => (
-                    <ListItem key={i}>
+                    <ListItem key={i} sx={listItemStyle}>
                       <ListItemText
-                        primary={job.title}
+                        primary={
+                          <Typography fontWeight="bold">
+                            {job.title}
+                          </Typography>
+                        }
                         secondary={job.company || "Unknown"}
                       />
                     </ListItem>
@@ -268,17 +255,23 @@ function Dashboard() {
 
           {/* SKILLS */}
           <Grid item xs={12} md={4}>
-            <Card sx={glassCard}>
+            <Card sx={cardStyle}>
               <CardContent>
 
-                <Typography variant="h6">
+                <Typography variant="h6" fontWeight="bold" mb={2}>
                   🧠 Skills to Learn
                 </Typography>
 
                 <List>
                   {skills.length > 0 ? skills.map((s, i) => (
-                    <ListItem key={i}>
-                      <ListItemText primary={s} />
+                    <ListItem key={i} sx={listItemStyle}>
+                      <ListItemText
+                        primary={
+                          <Typography fontWeight="bold">
+                            {s}
+                          </Typography>
+                        }
+                      />
                     </ListItem>
                   )) : (
                     <Typography>No suggestions</Typography>
@@ -291,10 +284,10 @@ function Dashboard() {
 
           {/* MARKET */}
           <Grid item xs={12}>
-            <Card sx={glassCard}>
+            <Card sx={cardStyle}>
               <CardContent>
 
-                <Typography variant="h6">
+                <Typography variant="h6" fontWeight="bold" mb={2}>
                   📊 Job Market Insights
                 </Typography>
 
@@ -314,10 +307,11 @@ function Dashboard() {
   );
 }
 
-// 🎨 STYLES
+/* 🎨 GREEN + GOLD THEME */
+
 const pageStyle = {
   minHeight: "100vh",
-  background: "linear-gradient(135deg, #667eea, #764ba2)",
+  background: "linear-gradient(to right, #e8f8f5, #fef9e7)",
   py: 6
 };
 
@@ -326,17 +320,39 @@ const loadingStyle = {
   display: "flex",
   flexDirection: "column",
   justifyContent: "center",
-  alignItems: "center",
-  background: "linear-gradient(135deg, #667eea, #764ba2)",
-  color: "#fff"
+  alignItems: "center"
 };
 
-const glassCard = {
-  backdropFilter: "blur(15px)",
-  background: "rgba(255,255,255,0.1)",
-  border: "1px solid rgba(255,255,255,0.2)",
-  borderRadius: "20px",
-  color: "#fff"
+const cardStyle = {
+  backgroundColor: "#ffffff",
+  borderRadius: "18px",
+  boxShadow: "0 6px 25px rgba(0,0,0,0.1)",
+  transition: "0.3s",
+  "&:hover": {
+    transform: "translateY(-5px)",
+    boxShadow: "0 10px 35px rgba(0,0,0,0.15)"
+  }
+};
+
+const avatarStyle = {
+  width: 70,
+  height: 70,
+  mb: 2,
+  bgcolor: "#27ae60",
+  fontWeight: "bold",
+  fontSize: "1.5rem"
+};
+
+const chipStyle = {
+  mr: 1,
+  mt: 1,
+  backgroundColor: "#f1c40f",
+  color: "#000",
+  fontWeight: "bold"
+};
+
+const listItemStyle = {
+  borderBottom: "1px solid #eee"
 };
 
 export default Dashboard;

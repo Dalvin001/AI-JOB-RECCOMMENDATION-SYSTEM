@@ -43,7 +43,7 @@ def save_profile(
     return {"message": "Profile saved"}
 
 
-@router.get("/me")
+@router.get("/")
 def get_profile(
     user=Depends(get_current_user),
     db: Session = Depends(get_db)
