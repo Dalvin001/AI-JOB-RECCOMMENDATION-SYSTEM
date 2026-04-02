@@ -36,7 +36,6 @@ ChartJS.register(
 );
 
 function Dashboard() {
-
   const [profile, setProfile] = useState(null);
   const [jobs, setJobs] = useState([]);
   const [skills, setSkills] = useState([]);
@@ -48,9 +47,7 @@ function Dashboard() {
   const token = localStorage.getItem("token");
 
   useEffect(() => {
-
     async function fetchData() {
-
       if (!token) {
         window.location.href = "/";
         return;
@@ -59,53 +56,81 @@ function Dashboard() {
       try {
         setLoading(true);
 
+        // ✅ PROFILE
         const profileRes = await axios.get(
           "http://127.0.0.1:8000/profile/me",
-          { headers: { Authorization: `Bearer ${token}` } }
+          {
+            headers: { Authorization: `Bearer ${token}` }
+          }
         );
 
-        if (!profileRes.data || profileRes.data.detail) {
+        if (!profileRes.data) {
           window.location.href = "/complete-profile";
           return;
         }
 
         setProfile(profileRes.data);
 
-        const userSkills =
-          profileRes.data.skills || "software developer";
+        // ✅ FIX SKILLS (NO MORE "p,y,t,h,o,n")
+        let userSkills = profileRes.data.skills;
 
-        const results = await Promise.allSettled([
+        if (!userSkills || userSkills.trim() === "") {
+          userSkills = "software developer";
+        } else {
+          userSkills = userSkills
+            .split(",")
+            .map(s => s.trim())
+            .filter(Boolean)
+            .join(",");
+        }
 
-          axios.get(
-            `http://127.0.0.1:8000/jobs/recommend?skills=${encodeURIComponent(userSkills)}`
-          ),
+        // ✅ API CALLS (ALL SAFE)
+        const [jobsRes, skillsRes, marketRes] =
+          await Promise.allSettled([
+            axios.get(
+              `http://127.0.0.1:8000/jobs/recommend?skills=${encodeURIComponent(userSkills)}`,
+              {
+                headers: { Authorization: `Bearer ${token}` }
+              }
+            ),
 
-          axios.get(
-            "http://127.0.0.1:8000/skills/recommend",
-            { headers: { Authorization: `Bearer ${token}` } }
-          ),
+            axios.get(
+              "http://127.0.0.1:8000/skills/recommend",
+              {
+                headers: { Authorization: `Bearer ${token}` }
+              }
+            ),
 
-          axios.get(
-            "http://127.0.0.1:8000/market/insights"
-          )
+            axios.get(
+              "http://127.0.0.1:8000/market/insights"
+            )
+          ]);
 
-        ]);
-
-        if (results[0].status === "fulfilled") {
-          setJobs(Array.isArray(results[0].value.data)
-            ? results[0].value.data
+        // ✅ JOBS
+        if (jobsRes.status === "fulfilled") {
+          setJobs(Array.isArray(jobsRes.value.data)
+            ? jobsRes.value.data
             : []);
         }
 
-        if (results[1].status === "fulfilled") {
-          setSkills(results[1].value.data?.recommended_skills || []);
+        // ✅ SKILLS
+        if (skillsRes.status === "fulfilled") {
+          setSkills(skillsRes.value.data?.recommended_skills || []);
         }
 
-        if (results[2].status === "fulfilled") {
-          setMarket(results[2].value.data || null);
+        // ✅ MARKET
+        if (marketRes.status === "fulfilled") {
+          setMarket(marketRes.value.data || null);
         }
 
       } catch (err) {
+        console.error("Dashboard error:", err);
+
+        if (err.response?.status === 401) {
+          localStorage.removeItem("token");
+          window.location.href = "/";
+          return;
+        }
 
         if (err.response?.status === 404) {
           window.location.href = "/complete-profile";
@@ -123,30 +148,21 @@ function Dashboard() {
     }
 
     fetchData();
-
   }, [token]);
 
-  // 🎨 LOADING UI
+  // 🔄 LOADING
   if (loading) {
     return (
-      <Box
-        sx={{
-          height: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          alignItems: "center",
-          background: "linear-gradient(135deg, #667eea, #764ba2)",
-          color: "#fff"
-        }}
-      >
+      <Box sx={loadingStyle}>
         <CircularProgress color="inherit" />
-        <Typography mt={2}>Preparing your AI dashboard...</Typography>
+        <Typography mt={2}>
+          Preparing your AI dashboard...
+        </Typography>
       </Box>
     );
   }
 
-  // 🚨 ERROR UI
+  // ❌ ERROR
   if (error) {
     return (
       <Container sx={{ mt: 6 }}>
@@ -155,59 +171,41 @@ function Dashboard() {
     );
   }
 
+  // 📊 CHART
   const chartData = market
     ? {
-        labels: market.top_skills?.map((s) => s[0]) || [],
+        labels: market.top_skills?.map(s => s[0]) || [],
         datasets: [
           {
             label: "Market Demand",
-            data: market.top_skills?.map((s) => s[1]) || []
+            data: market.top_skills?.map(s => s[1]) || []
           }
         ]
       }
     : null;
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        background: "linear-gradient(135deg, #667eea, #764ba2)",
-        py: 6
-      }}
-    >
+    <Box sx={pageStyle}>
       <Container>
 
-        {/* 🔥 HEADER */}
+        {/* HEADER */}
         <Typography variant="h5" color="#fff" mb={1}>
           Welcome back, {profile?.name || "User"} 👋
         </Typography>
 
-        <Typography
-          variant="h3"
-          fontWeight="bold"
-          color="#fff"
-          mb={4}
-        >
+        <Typography variant="h3" fontWeight="bold" color="#fff" mb={4}>
           AI Career Dashboard
         </Typography>
 
         <Grid container spacing={3}>
 
-          {/* 👤 PROFILE CARD */}
+          {/* PROFILE */}
           <Grid item xs={12} md={4}>
             <Card sx={glassCard}>
               <CardContent>
 
-                <Avatar
-                  src={
-                    profile?.avatar
-                      ? `http://127.0.0.1:8000/${profile.avatar}`
-                      : ""
-                  }
-                  sx={{ width: 80, height: 80, mb: 2 }}
-                >
-                  {!profile?.avatar &&
-                    (profile?.email?.charAt(0)?.toUpperCase() || "U")}
+                <Avatar sx={{ width: 80, height: 80, mb: 2 }}>
+                  {profile?.email?.charAt(0)?.toUpperCase() || "U"}
                 </Avatar>
 
                 <Typography variant="h6" fontWeight="bold">
@@ -225,7 +223,9 @@ function Dashboard() {
                 <Box mt={2}>
                   {(profile?.skills || "")
                     .split(",")
-                    .slice(0, 5)
+                    .map(s => s.trim())
+                    .filter(Boolean)
+                    .slice(0, 6)
                     .map((skill, i) => (
                       <Chip
                         key={i}
@@ -240,29 +240,25 @@ function Dashboard() {
             </Card>
           </Grid>
 
-          {/* 💼 JOBS */}
+          {/* JOBS */}
           <Grid item xs={12} md={4}>
             <Card sx={glassCard}>
               <CardContent>
 
-                <Typography variant="h6" gutterBottom>
+                <Typography variant="h6">
                   💼 Recommended Jobs
                 </Typography>
 
                 <List>
-                  {jobs.length > 0 ? jobs.slice(0, 5).map((job, index) => (
-                    <ListItem key={index} sx={hoverItem}>
+                  {jobs.length > 0 ? jobs.slice(0, 5).map((job, i) => (
+                    <ListItem key={i}>
                       <ListItemText
                         primary={job.title}
-                        secondary={`${job.company} • ${
-                          job.match_score
-                            ? Math.round(job.match_score) + "%"
-                            : "AI Match"
-                        }`}
+                        secondary={job.company || "Unknown"}
                       />
                     </ListItem>
                   )) : (
-                    <Typography>No jobs yet</Typography>
+                    <Typography>No jobs found</Typography>
                   )}
                 </List>
 
@@ -270,18 +266,18 @@ function Dashboard() {
             </Card>
           </Grid>
 
-          {/* 🧠 SKILLS */}
+          {/* SKILLS */}
           <Grid item xs={12} md={4}>
             <Card sx={glassCard}>
               <CardContent>
 
-                <Typography variant="h6" gutterBottom>
+                <Typography variant="h6">
                   🧠 Skills to Learn
                 </Typography>
 
                 <List>
                   {skills.length > 0 ? skills.map((s, i) => (
-                    <ListItem key={i} sx={hoverItem}>
+                    <ListItem key={i}>
                       <ListItemText primary={s} />
                     </ListItem>
                   )) : (
@@ -293,12 +289,12 @@ function Dashboard() {
             </Card>
           </Grid>
 
-          {/* 📊 MARKET */}
+          {/* MARKET */}
           <Grid item xs={12}>
             <Card sx={glassCard}>
               <CardContent>
 
-                <Typography variant="h6" gutterBottom>
+                <Typography variant="h6">
                   📊 Job Market Insights
                 </Typography>
 
@@ -318,26 +314,29 @@ function Dashboard() {
   );
 }
 
-// ✨ GLASS CARD STYLE
+// 🎨 STYLES
+const pageStyle = {
+  minHeight: "100vh",
+  background: "linear-gradient(135deg, #667eea, #764ba2)",
+  py: 6
+};
+
+const loadingStyle = {
+  height: "100vh",
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
+  alignItems: "center",
+  background: "linear-gradient(135deg, #667eea, #764ba2)",
+  color: "#fff"
+};
+
 const glassCard = {
   backdropFilter: "blur(15px)",
   background: "rgba(255,255,255,0.1)",
   border: "1px solid rgba(255,255,255,0.2)",
   borderRadius: "20px",
-  color: "#fff",
-  transition: "0.3s",
-  "&:hover": {
-    transform: "translateY(-5px)",
-    boxShadow: "0 10px 30px rgba(0,0,0,0.2)"
-  }
-};
-
-// ✨ HOVER LIST ITEM
-const hoverItem = {
-  borderRadius: "10px",
-  "&:hover": {
-    background: "rgba(255,255,255,0.1)"
-  }
+  color: "#fff"
 };
 
 export default Dashboard;
