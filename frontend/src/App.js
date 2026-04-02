@@ -5,6 +5,7 @@ import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./components/Profile";
+import ProfileForm from "./pages/ProfileForm";
 
 function App() {
 
@@ -26,6 +27,8 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
 
           <Route path="/profile" element={<Profile />} />
+          
+          <Route path="/complete-profile" element={<ProfileForm />} />
 
         </Routes>
 

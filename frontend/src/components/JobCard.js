@@ -8,7 +8,7 @@ function JobCard({ job }) {
       <div className="flex justify-between items-start">
         <div>
           <h2 className="text-xl font-bold mb-1">
-            {job.title}
+            {job.title || "No Title"}
           </h2>
 
           {job.match_score !== undefined && (
@@ -22,27 +22,33 @@ function JobCard({ job }) {
           )}
 
           <p className="text-sm opacity-80">
-            {job.company} • {job.location}
+            {job.company || "Unknown Company"} • {job.location || "Unknown Location"}
           </p>
         </div>
       </div>
 
       {/* Description */}
       <p className="mt-4 text-sm opacity-90">
-        This role matches your skill profile and experience.
+        {job.description || "This role matches your skill profile and experience."}
       </p>
 
       {/* Skills */}
       <div className="flex flex-wrap gap-2 mt-4">
-        {job.skills.map((skill, index) => (
-          <span
-            key={index}
-            className="px-3 py-1 text-xs font-medium rounded-full
-                       bg-gray-100 dark:bg-slate-800"
-          >
-            {skill}
+        {Array.isArray(job.skills) && job.skills.length > 0 ? (
+          job.skills.map((skill, index) => (
+            <span
+              key={index}
+              className="px-3 py-1 text-xs font-medium rounded-full
+                         bg-gray-100 dark:bg-slate-800"
+            >
+              {skill}
+            </span>
+          ))
+        ) : (
+          <span className="text-xs opacity-50">
+            No skills listed
           </span>
-        ))}
+        )}
       </div>
 
       {/* Actions */}

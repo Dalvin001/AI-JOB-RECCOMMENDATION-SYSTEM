@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.models.profile import Profile
 from app.dependencies import get_current_user
-
 from app.recommender.skill_gap import analyze_skill_gap
 
 router = APIRouter()
@@ -26,7 +25,8 @@ def recommend_skills(user=Depends(get_current_user), db: Session = Depends(get_d
     if not profile:
         return {"recommended_skills": []}
 
-    user_skills = profile.skills.split(",")
+    # ✅ FIXED (no crash if null)
+    user_skills = profile.skills.split(",") if profile.skills else []
 
     recommendations = analyze_skill_gap(user_skills)
 
